@@ -17,10 +17,31 @@
         </p>
         <div class="hero-actions">
             <a href="{{ url_for('register') }}" class="btn-primary">Create free account</a>
-            <a href="{{ url_for('login') }}" class="btn-primary">See how it works</a>
+            <button type="button" class="btn-primary" data-open-video-modal>See how it works</button>
         </div>
     </div>
 </section>
+
+<!-- Video modal — opens when "See how it works" is clicked -->
+<div class="video-modal" id="videoModal" hidden>
+    <div class="video-modal-overlay" data-close-video-modal></div>
+    <div class="video-modal-dialog" role="dialog" aria-modal="true" aria-labelledby="videoModalTitle">
+        <div class="video-modal-header">
+            <h2 class="video-modal-title" id="videoModalTitle">See Spendly in action</h2>
+            <button type="button" class="video-modal-close" data-close-video-modal aria-label="Close video">
+                &times;
+            </button>
+        </div>
+        <div class="video-modal-frame">
+            <iframe
+                id="videoModalFrame"
+                title="Spendly demo video"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                allowfullscreen
+            ></iframe>
+        </div>
+    </div>
+</div>
 
 <section class="features">
     <div class="features-inner">
