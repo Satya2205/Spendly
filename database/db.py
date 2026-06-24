@@ -46,6 +46,21 @@ def init_db() -> None:
         conn.close()
 
 
+def create_user(conn: sqlite3.Connection, name: str, email: str, password: str) -> int:
+    """Insert a new user with a werkzeug-hashed password. Returns the new id.
+
+    Lets ``sqlite3.IntegrityError`` propagate so the caller can translate a
+    UNIQUE-constraint violation on ``users.email`` into a friendly message.
+    The caller owns the connection's lifetime and is responsible for closing it.
+    """
+    cur = conn.execute(
+        "INSERT INTO users (name, email, password_hash) VALUES (?, ?, ?)",
+        (name, email, generate_password_hash(password)),
+    )
+    conn.commit()
+    return cur.lastrowid
+
+
 def seed_db() -> None:
     """Insert the demo user and 8 sample expenses, but only once."""
     conn = get_db()
