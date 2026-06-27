@@ -1,0 +1,92 @@
+{% extends "base.html" %}
+
+{% block title %}Your profile — Spendly{% endblock %}
+
+{% block head %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/profile.css') }}">
+{% endblock %}
+
+{% block content %}
+
+<section class="profile">
+    <div class="profile-inner">
+
+        {% for category, message in get_flashed_messages(with_categories=True) %}
+        <div class="profile-flash profile-flash--{{ category }}">{{ message }}</div>
+        {% endfor %}
+
+        <header class="profile-header">
+            <div>
+                <p class="profile-eyebrow">Your profile</p>
+                <h1 class="profile-greeting">Welcome back, {{ user['name'].split()[0] }}.</h1>
+            </div>
+            <div class="profile-header-meta">
+                <span class="profile-meta-label">Member since</span>
+                <span class="profile-meta-value">{{ user['created_at'][:10] }}</span>
+            </div>
+        </header>
+
+        <div class="profile-grid">
+
+            <article class="profile-card profile-account">
+                <h2 class="profile-card-title">Account</h2>
+                <dl class="profile-account-list">
+                    <div class="profile-account-row">
+                        <dt>Name</dt>
+                        <dd>{{ user['name'] }}</dd>
+                    </div>
+                    <div class="profile-account-row">
+                        <dt>Email</dt>
+                        <dd>{{ user['email'] }}</dd>
+                    </div>
+                    <div class="profile-account-row">
+                        <dt>Joined</dt>
+                        <dd>{{ user['created_at'][:10] }}</dd>
+                    </div>
+                </dl>
+            </article>
+
+            <article class="profile-card profile-stats">
+                <h2 class="profile-card-title">Spending overview</h2>
+
+                {% if stats.total_count == 0 %}
+                <div class="profile-empty">
+                    <span class="profile-empty-icon">◎</span>
+                    <p class="profile-empty-title">No expenses yet</p>
+                    <p class="profile-empty-body">Add your first one to see your stats here.</p>
+                </div>
+                {% else %}
+                <div class="profile-stats-grid">
+                    <div class="profile-stat">
+                        <span class="profile-stat-label">Total expenses</span>
+                        <span class="profile-stat-value">{{ stats.total_count }}</span>
+                    </div>
+                    <div class="profile-stat">
+                        <span class="profile-stat-label">All-time spend</span>
+                        <span class="profile-stat-value">₹{{ '{:,.2f}'.format(stats.total_amount) }}</span>
+                    </div>
+                    <div class="profile-stat">
+                        <span class="profile-stat-label">This month</span>
+                        <span class="profile-stat-value">₹{{ '{:,.2f}'.format(stats.month_amount) }}</span>
+                    </div>
+                    <div class="profile-stat">
+                        <span class="profile-stat-label">Top category</span>
+                        <span class="profile-stat-value profile-stat-value--text">
+                            {{ stats.top_category or '—' }}
+                        </span>
+                    </div>
+                </div>
+                {% endif %}
+            </article>
+
+        </div>
+
+        <div class="profile-actions">
+            <a href="{{ url_for('add_expense') }}" class="btn-primary">Add expense</a>
+            <a href="{{ url_for('profile') }}" class="profile-actions-link">View all expenses</a>
+        </div>
+
+    </div>
+</section>
+
+{% endblock %}

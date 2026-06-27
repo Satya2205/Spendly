@@ -12,7 +12,14 @@ from flask import (
     url_for,
 )
 
-from database.db import create_user, get_db, init_db, seed_db
+from database.db import (
+    create_user,
+    get_db,
+    get_user_by_id,
+    get_user_stats,
+    init_db,
+    seed_db,
+)
 
 app = Flask(__name__)
 
@@ -103,7 +110,24 @@ def logout():
 
 @app.route("/profile")
 def profile():
-    return "Profile page — coming in Step 4"
+    user_id = session.get("user_id")
+    if not user_id:
+        flash("Please sign in to view your profile.", "error")
+        return redirect(url_for("login"))
+
+    conn = get_db()
+    try:
+        user = get_user_by_id(conn, user_id)
+        if user is None:
+            # Stale session pointing at a user that no longer exists.
+            session.clear()
+            flash("Your session has expired. Please sign in again.", "error")
+            return redirect(url_for("login"))
+        stats = get_user_stats(conn, user_id)
+    finally:
+        conn.close()
+
+    return render_template("profile.html", user=user, stats=stats)
 
 
 @app.route("/expenses/add")

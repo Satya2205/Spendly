@@ -1,5 +1,6 @@
 import os
 import sqlite3
+from datetime import date
 
 from werkzeug.security import generate_password_hash
 
@@ -59,6 +60,75 @@ def create_user(conn: sqlite3.Connection, name: str, email: str, password: str) 
     )
     conn.commit()
     return cur.lastrowid
+
+
+def get_user_by_id(conn: sqlite3.Connection, user_id: int) -> sqlite3.Row | None:
+    """Fetch id, name, email, created_at for one user. Returns None if missing.
+
+    Read-only. Caller owns the connection's lifetime.
+    """
+    cur = conn.execute(
+        "SELECT id, name, email, created_at FROM users WHERE id = ?",
+        (user_id,),
+    )
+    return cur.fetchone()
+
+
+def get_user_stats(conn: sqlite3.Connection, user_id: int) -> dict:
+    """Aggregate spending stats for one user. Read-only.
+
+    Returns a dict with:
+        total_count   -- number of expenses
+        total_amount  -- all-time sum of expense amounts (float, 0.0 if none)
+        month_amount  -- sum of expenses in the current calendar month (float)
+        top_category  -- category with the highest total spend, or None
+
+    Early-returns a zeroed dict when the user has no expenses to keep
+    the empty-state path simple for the caller.
+    """
+    cur = conn.cursor()
+
+    cur.execute(
+        "SELECT COUNT(*) AS n FROM expenses WHERE user_id = ?",
+        (user_id,),
+    )
+    total_count = cur.fetchone()["n"]
+    if total_count == 0:
+        return {
+            "total_count": 0,
+            "total_amount": 0.0,
+            "month_amount": 0.0,
+            "top_category": None,
+        }
+
+    cur.execute(
+        "SELECT COALESCE(SUM(amount), 0) AS s FROM expenses WHERE user_id = ?",
+        (user_id,),
+    )
+    total_amount = cur.fetchone()["s"]
+
+    ym = date.today().strftime("%Y-%m")
+    cur.execute(
+        "SELECT COALESCE(SUM(amount), 0) AS s FROM expenses "
+        "WHERE user_id = ? AND substr(date, 1, 7) = ?",
+        (user_id, ym),
+    )
+    month_amount = cur.fetchone()["s"]
+
+    cur.execute(
+        "SELECT category FROM expenses WHERE user_id = ? "
+        "GROUP BY category ORDER BY SUM(amount) DESC LIMIT 1",
+        (user_id,),
+    )
+    row = cur.fetchone()
+    top_category = row["category"] if row else None
+
+    return {
+        "total_count": total_count,
+        "total_amount": float(total_amount),
+        "month_amount": float(month_amount),
+        "top_category": top_category,
+    }
 
 
 def seed_db() -> None:
