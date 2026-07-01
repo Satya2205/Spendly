@@ -26,6 +26,32 @@
             </div>
         </header>
 
+        {# ----------------------------------------------------------------- #}
+        {# Filter bar — preset pills on the left, custom range form on right  #}
+        {# ----------------------------------------------------------------- #}
+        <section class="profile-filter-bar" aria-label="Date range filter">
+            <div class="profile-presets" role="group" aria-label="Quick date ranges">
+                {% for name, (preset_from, preset_to) in presets.items() %}
+                    {% set classes = "profile-preset" + (" profile-preset--active" if name == active_preset else "") %}
+                    <a class="{{ classes }}"
+                       href="{{ url_for('profile', date_from=preset_from, date_to=preset_to) }}">
+                        {{ name }}
+                    </a>
+                {% endfor %}
+            </div>
+            <form class="profile-custom-range" method="get" action="{{ url_for('profile') }}">
+                <label class="profile-custom-range-field">
+                    <span class="profile-custom-range-label">From</span>
+                    <input type="date" name="date_from" value="{{ date_from }}" max="{{ date_to or '' }}">
+                </label>
+                <label class="profile-custom-range-field">
+                    <span class="profile-custom-range-label">To</span>
+                    <input type="date" name="date_to" value="{{ date_to }}" min="{{ date_from or '' }}">
+                </label>
+                <button type="submit" class="profile-custom-range-apply">Apply</button>
+            </form>
+        </section>
+
         <div class="profile-grid">
 
             <article class="profile-card profile-account">
@@ -52,8 +78,8 @@
                 {% if stats.total_count == 0 %}
                 <div class="profile-empty">
                     <span class="profile-empty-icon">◎</span>
-                    <p class="profile-empty-title">No expenses yet</p>
-                    <p class="profile-empty-body">Add your first one to see your stats here.</p>
+                    <p class="profile-empty-title">No expenses in this range</p>
+                    <p class="profile-empty-body">Adjust the filter or add your first expense.</p>
                 </div>
                 {% else %}
                 <div class="profile-stats-grid">
@@ -62,7 +88,7 @@
                         <span class="profile-stat-value">{{ stats.total_count }}</span>
                     </div>
                     <div class="profile-stat">
-                        <span class="profile-stat-label">All-time spend</span>
+                        <span class="profile-stat-label">Spend in range</span>
                         <span class="profile-stat-value">₹{{ '{:,.2f}'.format(stats.total_amount) }}</span>
                     </div>
                     <div class="profile-stat">
@@ -80,6 +106,65 @@
             </article>
 
         </div>
+
+        {# ----------------------------------------------------------------- #}
+        {# Recent transactions — newest first, capped at 10                  #}
+        {# ----------------------------------------------------------------- #}
+        <article class="profile-card profile-section">
+            <h2 class="profile-card-title">Recent transactions</h2>
+
+            {% if transactions %}
+            <ul class="profile-transactions">
+                {% for tx in transactions %}
+                <li class="profile-transaction-row">
+                    <span class="profile-transaction-date">{{ tx['date'] }}</span>
+                    <span class="profile-transaction-category">{{ tx['category'] }}</span>
+                    <span class="profile-transaction-description">{{ tx['description'] or '' }}</span>
+                    <span class="profile-transaction-amount">₹{{ '{:,.2f}'.format(tx['amount']) }}</span>
+                </li>
+                {% endfor %}
+            </ul>
+            {% else %}
+            <div class="profile-empty">
+                <span class="profile-empty-icon">◎</span>
+                <p class="profile-empty-title">No transactions in this range</p>
+                <p class="profile-empty-body">Try widening the date filter.</p>
+            </div>
+            {% endif %}
+        </article>
+
+        {# ----------------------------------------------------------------- #}
+        {# Category breakdown — totals per category with percentage bars      #}
+        {# ----------------------------------------------------------------- #}
+        <article class="profile-card profile-section">
+            <h2 class="profile-card-title">Category breakdown</h2>
+
+            {% if breakdown %}
+            <ul class="profile-breakdown">
+                {% for row in breakdown %}
+                <li class="profile-breakdown-row">
+                    <div class="profile-breakdown-head">
+                        <span class="profile-breakdown-category">{{ row['category'] }}</span>
+                        <span class="profile-breakdown-total">₹{{ '{:,.2f}'.format(row['total']) }}</span>
+                    </div>
+                    <div class="profile-breakdown-meta">
+                        {{ row['n'] }} transaction{% if row['n'] != 1 %}s{% endif %}
+                        · {{ '{:.0f}'.format(row['pct']) }}%
+                    </div>
+                    <div class="profile-breakdown-track">
+                        <div class="profile-breakdown-bar" style="--pct: {{ '{:.1f}'.format(row['pct']) }}"></div>
+                    </div>
+                </li>
+                {% endfor %}
+            </ul>
+            {% else %}
+            <div class="profile-empty">
+                <span class="profile-empty-icon">◎</span>
+                <p class="profile-empty-title">No categories in this range</p>
+                <p class="profile-empty-body">Adjust the filter to see a breakdown.</p>
+            </div>
+            {% endif %}
+        </article>
 
         <div class="profile-actions">
             <a href="{{ url_for('add_expense') }}" class="btn-primary">Add expense</a>
