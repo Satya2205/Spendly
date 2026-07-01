@@ -74,23 +74,45 @@ def get_user_by_id(conn: sqlite3.Connection, user_id: int) -> sqlite3.Row | None
     return cur.fetchone()
 
 
-def get_user_stats(conn: sqlite3.Connection, user_id: int) -> dict:
+def _date_clause(date_from: str | None, date_to: str | None) -> tuple[str, list]:
+    """Return the SQL fragment and params that bound an `expenses.date` range.
+
+    `date_from` and `date_to` are inclusive `YYYY-MM-DD` strings. When both
+    are provided, returns `(" AND date BETWEEN ? AND ?", [date_from, date_to])`.
+    Otherwise returns `("", [])` so callers can concatenate unconditionally.
+    Used by every query helper that supports optional date filtering.
+    """
+    if date_from and date_to:
+        return " AND date BETWEEN ? AND ?", [date_from, date_to]
+    return "", []
+
+
+def get_summary_stats(
+    conn: sqlite3.Connection,
+    user_id: int,
+    date_from: str | None = None,
+    date_to: str | None = None,
+) -> dict:
     """Aggregate spending stats for one user. Read-only.
 
     Returns a dict with:
-        total_count   -- number of expenses
-        total_amount  -- all-time sum of expense amounts (float, 0.0 if none)
-        month_amount  -- sum of expenses in the current calendar month (float)
-        top_category  -- category with the highest total spend, or None
+        total_count   -- number of expenses in the active range
+        total_amount  -- sum of expense amounts in the active range (float)
+        month_amount  -- sum of expenses in the current calendar month (float);
+                         unaffected by the active filter — it's a reference
+                         value, not a filtered aggregate
+        top_category  -- category with the highest total spend in the active
+                         range, or None when the range is empty
 
-    Early-returns a zeroed dict when the user has no expenses to keep
-    the empty-state path simple for the caller.
+    When `date_from` and `date_to` are both None, behaviour is identical to
+    the original `get_user_stats` (unfiltered, all-time).
     """
     cur = conn.cursor()
+    clause, params = _date_clause(date_from, date_to)
 
     cur.execute(
-        "SELECT COUNT(*) AS n FROM expenses WHERE user_id = ?",
-        (user_id,),
+        f"SELECT COUNT(*) AS n FROM expenses WHERE user_id = ?{clause}",
+        (user_id, *params),
     )
     total_count = cur.fetchone()["n"]
     if total_count == 0:
@@ -102,11 +124,13 @@ def get_user_stats(conn: sqlite3.Connection, user_id: int) -> dict:
         }
 
     cur.execute(
-        "SELECT COALESCE(SUM(amount), 0) AS s FROM expenses WHERE user_id = ?",
-        (user_id,),
+        f"SELECT COALESCE(SUM(amount), 0) AS s FROM expenses "
+        f"WHERE user_id = ?{clause}",
+        (user_id, *params),
     )
     total_amount = cur.fetchone()["s"]
 
+    # `month_amount` is a reference value (current calendar month, unfiltered).
     ym = date.today().strftime("%Y-%m")
     cur.execute(
         "SELECT COALESCE(SUM(amount), 0) AS s FROM expenses "
@@ -116,9 +140,9 @@ def get_user_stats(conn: sqlite3.Connection, user_id: int) -> dict:
     month_amount = cur.fetchone()["s"]
 
     cur.execute(
-        "SELECT category FROM expenses WHERE user_id = ? "
-        "GROUP BY category ORDER BY SUM(amount) DESC LIMIT 1",
-        (user_id,),
+        f"SELECT category FROM expenses WHERE user_id = ?{clause} "
+        f"GROUP BY category ORDER BY SUM(amount) DESC LIMIT 1",
+        (user_id, *params),
     )
     row = cur.fetchone()
     top_category = row["category"] if row else None
@@ -129,6 +153,51 @@ def get_user_stats(conn: sqlite3.Connection, user_id: int) -> dict:
         "month_amount": float(month_amount),
         "top_category": top_category,
     }
+
+
+def get_recent_transactions(
+    conn: sqlite3.Connection,
+    user_id: int,
+    limit: int = 10,
+    date_from: str | None = None,
+    date_to: str | None = None,
+) -> list[sqlite3.Row]:
+    """Return the most-recent expenses for one user, newest first.
+
+    Ordered by date DESC, then id DESC (stable tiebreaker for same-day rows).
+    Honours the optional date range. Returns an empty list when no rows match.
+    The caller owns the connection's lifetime.
+    """
+    clause, params = _date_clause(date_from, date_to)
+    cur = conn.execute(
+        f"SELECT id, amount, category, date, description FROM expenses "
+        f"WHERE user_id = ?{clause} "
+        f"ORDER BY date DESC, id DESC LIMIT ?",
+        (user_id, *params, limit),
+    )
+    return cur.fetchall()
+
+
+def get_category_breakdown(
+    conn: sqlite3.Connection,
+    user_id: int,
+    date_from: str | None = None,
+    date_to: str | None = None,
+) -> list[sqlite3.Row]:
+    """Return per-category totals for one user, highest spend first.
+
+    Each row has `category`, `total`, and `n` columns. Percentages are
+    computed by the caller against the row with the largest `total`.
+    Returns an empty list when the range is empty.
+    """
+    clause, params = _date_clause(date_from, date_to)
+    cur = conn.execute(
+        f"SELECT category, SUM(amount) AS total, COUNT(*) AS n "
+        f"FROM expenses WHERE user_id = ?{clause} "
+        f"GROUP BY category ORDER BY total DESC",
+        (user_id, *params),
+    )
+    return cur.fetchall()
 
 
 def seed_db() -> None:

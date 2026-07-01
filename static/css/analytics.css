@@ -1,0 +1,194 @@
+/* ------------------------------------------------------------------ */
+/* Analytics page (Coming Soon) — extends base.html + style.css        */
+/* All colors, radii, fonts come from :root variables in style.css    */
+/* ------------------------------------------------------------------ */
+
+/* Layout shell */
+
+.analytics {
+    padding: 4rem 2rem 5rem;
+    max-width: var(--max-width);
+    margin: 0 auto;
+    display: flex;
+    justify-content: center;
+}
+
+.analytics-inner {
+    width: 100%;
+    max-width: 520px;
+}
+
+/* Flash messages — match profile-flash styling so we reuse the visual language */
+
+.analytics-flash {
+    border-radius: var(--radius-sm);
+    padding: 0.75rem 1rem;
+    font-size: 0.875rem;
+    margin-bottom: 1.5rem;
+}
+
+.analytics-flash--error {
+    background: var(--danger-light);
+    color: var(--danger);
+    border: 1px solid var(--danger);
+}
+
+.analytics-flash--success {
+    background: var(--accent-light);
+    color: var(--accent);
+    border: 1px solid var(--accent);
+}
+
+/* Card — white surface, soft border, generous padding */
+
+.analytics-card {
+    position: relative;
+    background: var(--paper-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 3rem 2.5rem 2.5rem;
+    text-align: center;
+    box-shadow: 0 12px 40px rgba(15, 15, 15, 0.06);
+    overflow: hidden;
+}
+
+/* Icon — accent-coloured rounded square with a glow behind it */
+
+.analytics-icon-wrap {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 96px;
+    height: 96px;
+    margin-bottom: 2rem;
+}
+
+.analytics-icon-glow {
+    position: absolute;
+    inset: 0;
+    border-radius: var(--radius-md);
+    background: var(--accent);
+    opacity: 0.18;
+    filter: blur(14px);
+}
+
+.analytics-icon {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 96px;
+    height: 96px;
+    background: var(--accent);
+    color: var(--paper-card);
+    border-radius: var(--radius-md);
+    box-shadow: 0 6px 20px rgba(26, 71, 42, 0.25);
+}
+
+.analytics-icon svg {
+    width: 48px;
+    height: 48px;
+    display: block;
+}
+
+/* Badge — pill above the title */
+
+.analytics-badge {
+    display: inline-block;
+    padding: 0.4rem 1rem;
+    background: var(--accent);
+    color: var(--paper-card);
+    border-radius: 999px;
+    font-size: 0.7rem;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    margin-bottom: 1.25rem;
+}
+
+/* Title */
+
+.analytics-title {
+    font-family: var(--font-display);
+    font-size: clamp(1.75rem, 3vw, 2.25rem);
+    color: var(--ink);
+    letter-spacing: -0.01em;
+    margin-bottom: 1rem;
+}
+
+/* Description */
+
+.analytics-description {
+    font-size: 0.95rem;
+    color: var(--ink-muted);
+    line-height: 1.7;
+    max-width: 360px;
+    margin: 0 auto 2rem;
+}
+
+/* Progress dots — three pulsing dots */
+
+.analytics-progress {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+}
+
+.analytics-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 999px;
+    background: var(--accent);
+    animation: analytics-pulse 1.4s ease-in-out infinite;
+}
+
+.analytics-dot:nth-child(2) { animation-delay: 0.2s; }
+.analytics-dot:nth-child(3) { animation-delay: 0.4s; }
+
+@keyframes analytics-pulse {
+    0%, 100% { opacity: 0.3; transform: scale(0.85); }
+    50%      { opacity: 1;   transform: scale(1);    }
+}
+
+/* Tagline */
+
+.analytics-tagline {
+    font-size: 0.75rem;
+    color: var(--ink-faint);
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    margin-bottom: 2rem;
+}
+
+/* Back link — subtle, sits below the tagline */
+
+.analytics-back {
+    display: inline-block;
+    font-size: 0.85rem;
+    font-weight: 500;
+    color: var(--accent);
+    text-decoration: none;
+    border-bottom: 1px solid var(--accent-light);
+    padding-bottom: 2px;
+    transition: border-color 0.2s, color 0.2s;
+}
+
+.analytics-back:hover {
+    color: var(--ink);
+    border-bottom-color: var(--ink);
+}
+
+/* Responsive */
+
+@media (max-width: 600px) {
+    .analytics {
+        padding: 3rem 1.25rem 4rem;
+    }
+
+    .analytics-card {
+        padding: 2.25rem 1.5rem 2rem;
+    }
+}
